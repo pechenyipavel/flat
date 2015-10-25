@@ -23,23 +23,25 @@ class ParseCommand extends ContainerAwareCommand
         $this
             ->setName('flat:parse')
             ->setDescription('Parse')
+            ->addArgument('search', InputArgument::REQUIRED)
             ->addArgument('link', InputArgument::REQUIRED);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->em = $this->getContainer()->get('doctrine.orm.entity_manager');
+        $search = $input->getArgument('search');
         $link = $input->getArgument('link');
 
         while (1) {
-            $this->parse($link, $output);
+            $this->parse($search, $link, $output);
             sleep(60 * 5);
         }
 
 
     }
 
-    protected function parse($link, OutputInterface $output)
+    protected function parse($search, $link, OutputInterface $output)
     {
         $dom = new Dom;
         $dom->load($link);
@@ -69,11 +71,15 @@ class ParseCommand extends ContainerAwareCommand
             'src'   => $src,
             'href'  => $href,
             'title' => trim($text),
-            'price' => $price
+            'price' => $price,
+            'search' => $search
         ];
 
         $records = $this->em->getRepository('AppBundle:Flat')
-            ->findAll();
+            ->findBy([
+                'search' => $search,
+                'title'  => $result['title']
+            ]);
 
         if (count($records)) {
             $record = current($records);
@@ -120,6 +126,7 @@ class ParseCommand extends ContainerAwareCommand
 
     protected function updateRecord(Flat $record, $result)
     {
+        $record->setSearch($result['search']);
         $record->setTitle($result['title']);
         $record->setPrice($result['price']);
         $record->setHref($result['href']);

@@ -138,4 +138,33 @@ class Flat
     {
         return $this->src;
     }
+    /**
+     * @var string
+     */
+    private $search;
+
+
+    /**
+     * Set search
+     *
+     * @param string $search
+     *
+     * @return Flat
+     */
+    public function setSearch($search)
+    {
+        $this->search = $search;
+
+        return $this;
+    }
+
+    /**
+     * Get search
+     *
+     * @return string
+     */
+    public function getSearch()
+    {
+        return $this->search;
+    }
 }

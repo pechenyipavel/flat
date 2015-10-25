@@ -6,6 +6,9 @@ AppBundle\Entity\Flat:
             type: integer
             generator: { strategy: AUTO }
     fields:
+        search:
+            type: string
+            length: 255
         title:
             type: text
             nullable: true
