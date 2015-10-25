@@ -5,6 +5,7 @@ namespace AppBundle\Command;
 use AppBundle\Entity\Flat;
 use Doctrine\ORM\EntityManager;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use PHPHtmlParser\Dom;
@@ -21,25 +22,27 @@ class ParseCommand extends ContainerAwareCommand
     {
         $this
             ->setName('flat:parse')
-            ->setDescription('Parse');
+            ->setDescription('Parse')
+            ->addArgument('link', InputArgument::REQUIRED);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->em = $this->getContainer()->get('doctrine.orm.entity_manager');
+        $link = $input->getArgument('link');
 
         while (1) {
-            $this->parse($output);
+            $this->parse($link, $output);
             sleep(60 * 5);
         }
 
 
     }
 
-    protected function parse(OutputInterface $output)
+    protected function parse($link, OutputInterface $output)
     {
         $dom = new Dom;
-        $dom->load('http://kiev.ko.olx.ua/nedvizhimost/arenda-kvartir/dolgosrochnaya-arenda-kvartir/?search%5Bfilter_float_price%3Ato%5D=8000&search%5Bdistrict_id%5D=19');
+        $dom->load($link);
         $offers = $dom->find('#offers_table .offer');
 
         if (!count($offers)) {
@@ -140,6 +143,16 @@ class ParseCommand extends ContainerAwareCommand
         foreach ($result['photos'] as $photo) {
             $body .= sprintf("<br /><img src='%s' />", $photo);
         }
+
+        $excludeWords = $this->getContainer()->getParameter('exclude_words');
+
+        foreach ($excludeWords as $excludeWord) {
+            if (substr_count($subject, $excludeWord) || substr_count($subject, $body)) {
+                return;
+            }
+        }
+
+
 
         $key = $this->getContainer()->getParameter('mailgun_key');
         $domain = $this->getContainer()->getParameter('mailgun_domain');

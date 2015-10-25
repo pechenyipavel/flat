@@ -21,3 +21,4 @@ parameters:
     address1:          ~
     mailgun_key:       ~
     mailgun_domain:    ~
+    exclude_words:      ~
