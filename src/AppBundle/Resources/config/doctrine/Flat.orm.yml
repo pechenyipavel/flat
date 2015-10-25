@@ -1,0 +1,20 @@
+AppBundle\Entity\Flat:
+    type: entity
+    table: flat
+    id:
+        id:
+            type: integer
+            generator: { strategy: AUTO }
+    fields:
+        title:
+            type: text
+            nullable: true
+        src:
+            type: text
+            nullable: true
+        price:
+            type: text
+            nullable: true
+        href:
+            type: text
+            nullable: true
