@@ -8,6 +8,7 @@ use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use PHPHtmlParser\Dom;
+use Mailgun\Mailgun;
 
 class ParseCommand extends ContainerAwareCommand
 {
@@ -27,13 +28,17 @@ class ParseCommand extends ContainerAwareCommand
     {
         $this->em = $this->getContainer()->get('doctrine.orm.entity_manager');
 
-        $this->parse($output);
+        while (1) {
+            $this->parse($output);
+            sleep(60 * 5);
+        }
+
+
     }
 
     protected function parse(OutputInterface $output)
     {
         $dom = new Dom;
-        //$dom->load($this->getContainer()->getParameter('target_link'));
         $dom->load('http://kiev.ko.olx.ua/nedvizhimost/arenda-kvartir/dolgosrochnaya-arenda-kvartir/?search%5Bfilter_float_price%3Ato%5D=8000&search%5Bdistrict_id%5D=19');
         $offers = $dom->find('#offers_table .offer');
 
@@ -126,10 +131,9 @@ class ParseCommand extends ContainerAwareCommand
     protected function send($result)
     {
         $address1 = $this->getContainer()->getParameter('address1');
+        $address2 = $this->getContainer()->getParameter('address2');
 
         $subject = $result['price'] . ' : ' . trim($result['title']);
-
-        $message = \Swift_Message::newInstance();
 
         $body = sprintf($this->getView(), $result['href'], $result['title'], $result['src'], $result['additionalText']);
 
@@ -137,20 +141,23 @@ class ParseCommand extends ContainerAwareCommand
             $body .= sprintf("<br /><img src='%s' />", $photo);
         }
 
-        $message
-            ->setSubject($subject)
-            ->setFrom($address1)
-            ->setTo($address1)
-            ->setBody(
-                $body,
-                'text/html'
-            );
+        $key = $this->getContainer()->getParameter('mailgun_key');
+        $domain = $this->getContainer()->getParameter('mailgun_domain');
 
-        $transport = \Swift_SmtpTransport::newInstance('127.0.0.1', 1025);
+        $mg = new Mailgun($key);
 
-        $mailer = \Swift_Mailer::newInstance($transport);
+        # Now, compose and send your message.
+        $mg->sendMessage($domain, array(
+            'from'    => $address1,
+            'to'      => $address1,
+            'subject' => $subject,
+            'html'    => $body));
 
-        $mailer->send($message);
+        $mg->sendMessage($domain, array(
+            'from'    => $address1,
+            'to'      => $address2,
+            'subject' => $subject,
+            'html'    => $body));
     }
 
     protected function getView()
